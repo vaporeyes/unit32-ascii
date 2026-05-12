@@ -1,0 +1,27 @@
+/* ABOUTME: Global styles for the ASCII art creator. */
+/* Minimal, clean, and sleek. */
+
+:root {
+  --bg-color: #050505;
+  --fg-color: #f0f0f0;
+  --accent-color: #1a1a1a;
+  --font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-color);
+  color: var(--fg-color);
+  font-family: var(--font-family);
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+}

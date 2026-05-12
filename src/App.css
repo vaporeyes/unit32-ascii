@@ -1,0 +1,131 @@
+/* ABOUTME: Styles for the main App component. */
+
+.app-container {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #050505;
+}
+
+.editor-header {
+  height: 40px;
+  background-color: #0d0d0d;
+  border-bottom: 1px solid #1a1a1a;
+  display: flex;
+  align-items: center;
+  padding: 0 15px;
+}
+
+.toolbar {
+  display: flex;
+  gap: 8px;
+}
+
+.toolbar button {
+  background: #1a1a1a;
+  border: 1px solid #333;
+  color: #888;
+  padding: 4px 12px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.2s ease;
+}
+
+.toolbar button:hover {
+  background: #222;
+  color: #ccc;
+}
+
+.toolbar button.active {
+  background: #333;
+  color: #fff;
+  border-color: #666;
+}
+
+.divider {
+  width: 1px;
+  height: 16px;
+  background-color: #1a1a1a;
+  margin: 0 8px;
+}
+
+.editor-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.sidebar-left {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 240px;
+  border-right: 1px solid #1a1a1a;
+  background-color: #0d0d0d;
+  flex-shrink: 0;
+}
+
+.editor-main {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #050505;
+  overflow: auto;
+  padding: 40px;
+}
+
+/* Custom scrollbar for main editor */
+.editor-main::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.editor-main::-webkit-scrollbar-track {
+  background: #050505;
+}
+
+.editor-main::-webkit-scrollbar-thumb {
+  background: #1a1a1a;
+  border-radius: 4px;
+}
+
+.editor-main::-webkit-scrollbar-thumb:hover {
+  background: #222;
+}
+
+.canvas-wrapper {
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9);
+  border: 1px solid #1a1a1a;
+  background-color: #000;
+  padding: 1px; /* Minimal padding for the 'border' effect */
+}
+
+.editor-footer {
+  height: 24px;
+  background-color: #0d0d0d;
+  border-top: 1px solid #1a1a1a;
+  display: flex;
+  align-items: center;
+  padding: 0 15px;
+  font-size: 10px;
+  color: #444;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.status-bar {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+}
+
+#ascii-canvas {
+  image-rendering: pixelated;
+  display: block;
+  cursor: crosshair;
+}
