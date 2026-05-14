@@ -1,0 +1,84 @@
+/* ABOUTME: Styles for the document list panel. */
+
+.doc-panel {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid #1a1a1a;
+  background: #0d0d0d;
+  max-height: 30%;
+  overflow: hidden;
+}
+
+.doc-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #555;
+  background: #111;
+}
+
+.doc-panel-header button {
+  background: transparent;
+  border: 1px solid #333;
+  color: #aaa;
+  font-size: 10px;
+  padding: 2px 8px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.doc-panel-header button:hover { background: #1c1c1c; color: #fff; }
+
+.doc-list {
+  overflow-y: auto;
+  flex: 1;
+}
+
+.doc-empty {
+  padding: 12px;
+  color: #444;
+  font-size: 11px;
+  text-align: center;
+}
+
+.doc-row {
+  display: flex;
+  border-bottom: 1px solid #131313;
+}
+
+.doc-row.active { background: #181818; }
+
+.doc-open {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  background: transparent;
+  border: none;
+  color: #aaa;
+  cursor: pointer;
+  padding: 6px 12px;
+  text-align: left;
+  font-family: inherit;
+}
+
+.doc-open:hover { background: #1a1a1a; color: #fff; }
+
+.doc-name { font-size: 12px; color: #ddd; }
+.doc-meta { font-size: 9px; color: #555; text-transform: uppercase; letter-spacing: 0.5px; }
+
+.doc-delete {
+  width: 28px;
+  background: transparent;
+  border: none;
+  color: #444;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.doc-delete:hover { color: #f55; background: #1a1010; }

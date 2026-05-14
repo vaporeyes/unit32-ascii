@@ -35,7 +35,7 @@ export class GridMemory {
 
   // Pack data into a single uint32
   // 16 bits char (Unicode support), 8 bits fg, 8 bits bg
-  public static pack(char: number, fg: number, bg: number, _flags: number = 0): number {
+  public static pack(char: number, fg: number, bg: number): number {
     return (char & 0xFFFF) | ((fg & 0xFF) << 16) | ((bg & 0xFF) << 24);
   }
 

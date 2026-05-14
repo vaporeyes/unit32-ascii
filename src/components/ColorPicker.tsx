@@ -8,9 +8,10 @@ interface ColorPickerProps {
   selectedBg: number;
   onSelectFg: (index: number) => void;
   onSelectBg: (index: number) => void;
+  onSwap?: () => void;
 }
 
-const ColorPicker: React.FC<ColorPickerProps> = ({ selectedFg, selectedBg, onSelectFg, onSelectBg }) => {
+const ColorPicker: React.FC<ColorPickerProps> = ({ selectedFg, selectedBg, onSelectFg, onSelectBg, onSwap }) => {
   return (
     <div className="color-picker">
       <div className="active-colors">
@@ -29,6 +30,9 @@ const ColorPicker: React.FC<ColorPickerProps> = ({ selectedFg, selectedBg, onSel
         <div className="color-indices">
           FG: {selectedFg} | BG: {selectedBg}
         </div>
+        {onSwap && (
+          <button className="color-swap" onClick={onSwap} title="Swap FG/BG (X)">Swap</button>
+        )}
       </div>
       <div className="color-grid">
         {XTERM_COLORS.map((color, index) => (

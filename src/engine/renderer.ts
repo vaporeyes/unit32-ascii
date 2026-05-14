@@ -1,4 +1,5 @@
-/* ABOUTME: Main rendering loop for the ASCII grid. */
+/* ABOUTME: Dirty-cell renderer that blits glyphs from a sprite atlas. */
+/* ABOUTME: Supports a single overlay cell for tool hover preview. */
 import { GridMemory } from './memory';
 import { SpriteSheet } from './sprites';
 import type { GridConfig } from './types';
@@ -11,6 +12,9 @@ export class Renderer {
   private sprites: SpriteSheet;
   private config: GridConfig;
   private dirty: Uint8Array;
+  private hoverX: number | null = null;
+  private hoverY: number | null = null;
+  private rafHandle: number | null = null;
 
   constructor(canvas: HTMLCanvasElement, memory: GridMemory, sprites: SpriteSheet, config: GridConfig) {
     this.canvas = canvas;
@@ -28,13 +32,24 @@ export class Renderer {
     this.canvas.style.width = `${config.width * config.charWidth}px`;
     this.canvas.style.height = `${config.height * config.charHeight}px`;
     this.ctx.scale(dpr, dpr);
+    this.ctx.imageSmoothingEnabled = false;
   }
 
   public markDirty(x: number, y: number): void {
-    const idx = y * this.config.width + x;
-    if (idx >= 0 && idx < this.dirty.length) {
-      this.dirty[idx] = 1;
-    }
+    if (x < 0 || y < 0 || x >= this.config.width || y >= this.config.height) return;
+    this.dirty[y * this.config.width + x] = 1;
+  }
+
+  public markAllDirty(): void {
+    this.dirty.fill(1);
+  }
+
+  public setHover(x: number | null, y: number | null): void {
+    if (this.hoverX === x && this.hoverY === y) return;
+    if (this.hoverX !== null && this.hoverY !== null) this.markDirty(this.hoverX, this.hoverY);
+    this.hoverX = x;
+    this.hoverY = y;
+    if (x !== null && y !== null) this.markDirty(x, y);
   }
 
   public render(): void {
@@ -44,16 +59,18 @@ export class Renderer {
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         const idx = y * width + x;
-        if (this.dirty[idx]) {
-          const value = buffer[idx];
-          const { char, fg, bg } = GridMemory.unpack(value);
-          
-          const fgColor = getXtermColor(fg);
-          const bgColor = getXtermColor(bg);
+        if (!this.dirty[idx]) continue;
 
-          this.sprites.drawChar(this.ctx, char, x * charWidth, y * charHeight, fgColor, bgColor);
-          this.dirty[idx] = 0;
+        const value = buffer[idx];
+        const { char, fg, bg } = GridMemory.unpack(value);
+        this.sprites.drawChar(this.ctx, char, x * charWidth, y * charHeight, getXtermColor(fg), getXtermColor(bg));
+
+        if (this.hoverX === x && this.hoverY === y) {
+          this.ctx.fillStyle = 'rgba(255, 255, 255, 0.18)';
+          this.ctx.fillRect(x * charWidth, y * charHeight, charWidth, charHeight);
         }
+
+        this.dirty[idx] = 0;
       }
     }
   }
@@ -61,8 +78,13 @@ export class Renderer {
   public start(): void {
     const loop = () => {
       this.render();
-      requestAnimationFrame(loop);
+      this.rafHandle = requestAnimationFrame(loop);
     };
-    requestAnimationFrame(loop);
+    this.rafHandle = requestAnimationFrame(loop);
+  }
+
+  public stop(): void {
+    if (this.rafHandle !== null) cancelAnimationFrame(this.rafHandle);
+    this.rafHandle = null;
   }
 }
