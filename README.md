@@ -4,10 +4,16 @@ A fast, offline-first ASCII / ANSI art editor. Each grid cell is packed into a
 single `Uint32` (16 bits character, 8 bits foreground, 8 bits background) and
 rendered through a glyph atlas with dirty-cell blitting.
 
+![unit32-ascii editor screenshot](media/unit32-ascii.png)
+
 ## Features
 
 - **Six tools**: brush, eraser, paint bucket fill, eyedropper, line, rectangle
 - **256-colour xterm palette** with foreground / background selection and swap
+- **Transparent cell backgrounds** using background index `0`, with a checkerboard
+  canvas backdrop for visibility
+- **Reference image underlay**: upload a local PNG or JPEG behind the canvas and
+  adjust opacity while tracing
 - **Box-drawing and block characters** plus full printable ASCII
 - **Bresenham line interpolation** so brush strokes don't skip pixels
 - **Offline-first**: multiple named documents persisted to IndexedDB with
@@ -16,7 +22,9 @@ rendered through a glyph atlas with dirty-cell blitting.
   account or server required
 - **Optional gallery backend** (Go) for publishing artworks behind a stable URL
 - **Web Worker ANSI export**, copy to clipboard, or download as `.ans`
-- **Pointer events** (mouse, pen, touch) and keyboard shortcuts
+- **Pointer events** (mouse, pen, touch), right-click erase, and keyboard
+  shortcuts
+- **In-app confirmation dialogs** for destructive actions and publishing prompts
 
 ## Keyboard shortcuts
 
@@ -26,10 +34,19 @@ rendered through a glyph atlas with dirty-cell blitting.
 | `I / L / R` | Eyedropper / Line / Rectangle |
 | `X` | Swap foreground and background |
 | Any printable | Set that character as the brush |
+| Right-click drag | Erase without changing the selected tool |
 | `Ctrl/Cmd+Z` | Undo |
 | `Ctrl/Cmd+Shift+Z` | Redo |
 | `Ctrl/Cmd+N` | New document |
 | `?` | Toggle help |
+
+## Underlay workflow
+
+Use the **Underlay** panel in the left sidebar to upload a local PNG or JPEG as
+a tracing reference. The image is shown behind the transparent ASCII canvas and
+does not get saved into the artwork, exported ANSI, share URL, or gallery
+payload. Clear the image when you are done, or adjust opacity to keep the grid
+legible while drawing.
 
 ## Frontend
 
@@ -77,7 +94,7 @@ validated and `data.length` must equal `width * height * 4`.
 ```
 src/
   engine/        memory, renderer, sprites, tools, share, storage, api client
-  components/    React UI (toolbar, palette, color picker, doc panel)
+  components/    React UI (toolbar, palette, color picker, underlay, doc panel)
   workers/       ANSI exporter Web Worker
 backend/         Go HTTP service
 ```
