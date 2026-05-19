@@ -3,7 +3,7 @@
 import { GridMemory } from './memory';
 import { SpriteSheet } from './sprites';
 import type { GridConfig } from './types';
-import { getXtermColor } from './colors';
+import { getCellBackgroundColor, getXtermColor } from './colors';
 
 export class Renderer {
   private canvas: HTMLCanvasElement;
@@ -18,7 +18,7 @@ export class Renderer {
 
   constructor(canvas: HTMLCanvasElement, memory: GridMemory, sprites: SpriteSheet, config: GridConfig) {
     this.canvas = canvas;
-    const ctx = canvas.getContext('2d', { alpha: false });
+    const ctx = canvas.getContext('2d', { alpha: true });
     if (!ctx) throw new Error('Could not get 2d context');
     this.ctx = ctx;
     this.memory = memory;
@@ -63,7 +63,7 @@ export class Renderer {
 
         const value = buffer[idx];
         const { char, fg, bg } = GridMemory.unpack(value);
-        this.sprites.drawChar(this.ctx, char, x * charWidth, y * charHeight, getXtermColor(fg), getXtermColor(bg));
+        this.sprites.drawChar(this.ctx, char, x * charWidth, y * charHeight, getXtermColor(fg), getCellBackgroundColor(bg));
 
         if (this.hoverX === x && this.hoverY === y) {
           this.ctx.fillStyle = 'rgba(255, 255, 255, 0.18)';

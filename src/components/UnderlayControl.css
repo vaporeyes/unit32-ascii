@@ -1,0 +1,79 @@
+/* ABOUTME: Styles for the local reference image property panel. */
+/* ABOUTME: Keeps upload, clear and opacity controls compact inside the sidebar. */
+
+.underlay-control {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  background: #0d0d0d;
+  border-bottom: 1px solid var(--accent-color);
+}
+
+.underlay-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #777;
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.underlay-state {
+  color: #555;
+}
+
+.underlay-state.active {
+  color: #e8d39f;
+}
+
+.underlay-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.underlay-actions button {
+  min-width: 0;
+  background: #111;
+  border: 1px solid #333;
+  color: #aaa;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  padding: 6px 8px;
+  text-transform: uppercase;
+}
+
+.underlay-actions button:hover:not(:disabled) {
+  background: #1c1c1c;
+  color: #fff;
+}
+
+.underlay-actions button:disabled {
+  color: #444;
+  cursor: not-allowed;
+}
+
+.underlay-opacity {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+  color: #777;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.underlay-opacity input {
+  grid-column: 1 / -1;
+  width: 100%;
+  accent-color: #e8d39f;
+}
+
+.underlay-file {
+  display: none;
+}

@@ -82,13 +82,17 @@ export class SpriteSheet {
     destX: number,
     destY: number,
     fgColor: string,
-    bgColor: string,
+    bgColor: string | null,
   ): void {
     const w = this.charWidth;
     const h = this.charHeight;
 
-    ctx.fillStyle = bgColor;
-    ctx.fillRect(destX, destY, w, h);
+    if (bgColor === null || bgColor === 'transparent') {
+      ctx.clearRect(destX, destY, w, h);
+    } else {
+      ctx.fillStyle = bgColor;
+      ctx.fillRect(destX, destY, w, h);
+    }
 
     // Spaces and null bytes have nothing to tint.
     if (charCode === 32 || charCode === 0) return;

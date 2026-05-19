@@ -10,6 +10,7 @@ import Palette from './components/Palette';
 import ColorPicker from './components/ColorPicker';
 import Toolbar from './components/Toolbar';
 import DocPanel from './components/DocPanel';
+import UnderlayControl from './components/UnderlayControl';
 import type { GridConfig, ToolKind, ToolState } from './engine/types';
 import { encodeShare, decodeShare } from './engine/share';
 import { publishArtwork, fetchArtwork } from './engine/api';
@@ -83,6 +84,9 @@ const App: React.FC = () => {
   const engineRef = useRef<Engine | null>(null);
   const spritesRef = useRef<SpriteSheet | null>(null);
   const storageRef = useRef<Storage>(new Storage());
+  const underlayUrlRef = useRef<string | null>(null);
+  const activeToolRef = useRef<ToolKind>('brush');
+  const activeGestureRef = useRef<{ pointerId: number; button: number; previousTool: ToolKind | null } | null>(null);
 
   const [ready, setReady] = useState(false);
   const [toolState, setToolState] = useState<ToolState>({ char: 64, fg: 15, bg: 0 });
@@ -99,6 +103,12 @@ const App: React.FC = () => {
   const [status, setStatus] = useState<string>('');
   const [showHelp, setShowHelp] = useState(false);
   const [sidebarsOpen, setSidebarsOpen] = useState(true);
+  const [underlayUrl, setUnderlayUrl] = useState<string | null>(null);
+  const [underlayOpacity, setUnderlayOpacity] = useState(0.5);
+
+  useEffect(() => {
+    activeToolRef.current = activeTool;
+  }, [activeTool]);
 
   // One-time bootstrap.
   useEffect(() => {
@@ -158,7 +168,12 @@ const App: React.FC = () => {
       const eng = engineRef.current;
       const p = point(e);
       if (!eng || !p) return;
-      if (e.button !== undefined && e.button !== 0) return;
+      if (e.button !== 0 && e.button !== 2) return;
+      if (activeGestureRef.current) return;
+      e.preventDefault();
+      const previousTool = e.button === 2 ? activeToolRef.current : null;
+      if (e.button === 2) eng.setTool('eraser');
+      activeGestureRef.current = { pointerId: e.pointerId, button: e.button, previousTool };
       canvas.setPointerCapture(e.pointerId);
       eng.currentTool.onPointerDown(p);
     };
@@ -167,22 +182,28 @@ const App: React.FC = () => {
       const p = point(e);
       if (!eng || !p) return;
       eng.setHover(p);
+      if (activeGestureRef.current?.pointerId !== e.pointerId) return;
       eng.currentTool.onPointerMove(p);
     };
     const onUp = (e: PointerEvent) => {
       const eng = engineRef.current;
+      const gesture = activeGestureRef.current;
+      if (!eng || !gesture || gesture.pointerId !== e.pointerId) return;
       const p = point(e);
-      if (!eng || !p) return;
       try { canvas.releasePointerCapture(e.pointerId); } catch { /* ignore */ }
-      eng.currentTool.onPointerUp(p);
+      if (p) eng.currentTool.onPointerUp(p);
+      if (gesture.button === 2 && gesture.previousTool) eng.setTool(gesture.previousTool);
+      activeGestureRef.current = null;
     };
     const onLeave = () => engineRef.current?.setHover(null);
+    const onContextMenu = (e: MouseEvent) => e.preventDefault();
 
     canvas.addEventListener('pointerdown', onDown);
     canvas.addEventListener('pointermove', onMove);
     canvas.addEventListener('pointerup', onUp);
     canvas.addEventListener('pointercancel', onUp);
     canvas.addEventListener('pointerleave', onLeave);
+    canvas.addEventListener('contextmenu', onContextMenu);
 
     return () => {
       canvas.removeEventListener('pointerdown', onDown);
@@ -190,6 +211,8 @@ const App: React.FC = () => {
       canvas.removeEventListener('pointerup', onUp);
       canvas.removeEventListener('pointercancel', onUp);
       canvas.removeEventListener('pointerleave', onLeave);
+      canvas.removeEventListener('contextmenu', onContextMenu);
+      activeGestureRef.current = null;
     };
   }, [ready]);
 
@@ -371,6 +394,32 @@ const App: React.FC = () => {
     engineRef.current?.clear();
   }, []);
 
+  const handleUnderlayUpload = useCallback((file: File) => {
+    if (!file.type.match(/^image\/(png|jpeg)$/)) {
+      flash('Use a PNG or JPEG underlay');
+      return;
+    }
+    const nextUrl = URL.createObjectURL(file);
+    if (underlayUrlRef.current) URL.revokeObjectURL(underlayUrlRef.current);
+    underlayUrlRef.current = nextUrl;
+    setUnderlayUrl(nextUrl);
+    flash('Underlay loaded');
+  }, [flash]);
+
+  const handleUnderlayClear = useCallback(() => {
+    if (underlayUrlRef.current) URL.revokeObjectURL(underlayUrlRef.current);
+    underlayUrlRef.current = null;
+    setUnderlayUrl(null);
+    flash('Underlay cleared');
+  }, [flash]);
+
+  useEffect(() => {
+    return () => {
+      if (underlayUrlRef.current) URL.revokeObjectURL(underlayUrlRef.current);
+      underlayUrlRef.current = null;
+    };
+  }, []);
+
   // Periodically refresh doc list to reflect debounced persist.
   useEffect(() => {
     const t = window.setInterval(refreshDocList, 1500);
@@ -417,6 +466,13 @@ const App: React.FC = () => {
             onSelectBg={handleBgSelect}
             onSwap={swapColors}
           />
+          <UnderlayControl
+            hasUnderlay={underlayUrl !== null}
+            opacity={underlayOpacity}
+            onUpload={handleUnderlayUpload}
+            onClear={handleUnderlayClear}
+            onOpacityChange={setUnderlayOpacity}
+          />
           <DocPanel
             docs={docs}
             currentId={docInfo.id}
@@ -425,8 +481,15 @@ const App: React.FC = () => {
             onDelete={handleDelete}
           />
         </aside>
-        <main className="editor-main">
+        <main className={`editor-main tool-${activeTool}`}>
           <div className="canvas-wrapper">
+            {underlayUrl && (
+              <div
+                className="underlay-layer"
+                style={{ backgroundImage: `url("${underlayUrl}")`, opacity: underlayOpacity }}
+                aria-hidden="true"
+              />
+            )}
             <canvas ref={canvasRef} id="ascii-canvas"></canvas>
           </div>
         </main>
@@ -448,6 +511,7 @@ const App: React.FC = () => {
                 <tr><th>I / L / R</th><td>Eyedropper / Line / Rectangle</td></tr>
                 <tr><th>X</th><td>Swap foreground and background</td></tr>
                 <tr><th>Any printable</th><td>Select that character as the brush</td></tr>
+                <tr><th>Right-click</th><td>Erase without changing tools</td></tr>
                 <tr><th>Click color</th><td>Set foreground</td></tr>
                 <tr><th>Shift+Click color</th><td>Set background</td></tr>
                 <tr><th>Ctrl/Cmd+Z</th><td>Undo</td></tr>

@@ -1,8 +1,11 @@
-# Node
+# Node / Vite
 node_modules
 dist
 dist-ssr
+.vite
 *.local
+*.tsbuildinfo
+coverage
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -11,7 +14,9 @@ lerna-debug.log*
 
 # Go
 backend/backend
+backend/server
 backend/bin/
+backend/data/
 *.exe
 *.exe~
 *.dll
@@ -26,10 +31,11 @@ vendor/
 .env.local
 .env.*.local
 
-# Editor/System
+# Editor / tooling
 .vscode/*
 !.vscode/extensions.json
 .idea
+.claude/
 .DS_Store
 *.suo
 *.ntvs*

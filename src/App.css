@@ -1,4 +1,5 @@
 /* ABOUTME: Layout for the editor shell, header bar, sidebars, footer and modals. */
+/* ABOUTME: Defines canvas stacking, tool cursors and compact property panels. */
 
 .app-container {
   width: 100vw;
@@ -84,7 +85,7 @@
   border-right: 1px solid #1a1a1a;
   background-color: #0d0d0d;
   flex-shrink: 0;
-  overflow: hidden;
+  overflow-y: auto;
   transition: width 0.2s ease;
 }
 .sidebar-left.closed { width: 0; border-right: none; }
@@ -106,10 +107,28 @@
 .editor-main::-webkit-scrollbar-thumb:hover { background: #222; }
 
 .canvas-wrapper {
+  position: relative;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9);
   border: 1px solid #1a1a1a;
-  background-color: #000;
+  background-color: #0a0a0a;
+  background-image:
+    linear-gradient(45deg, rgba(255, 255, 255, 0.04) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(255, 255, 255, 0.04) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(255, 255, 255, 0.04) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(255, 255, 255, 0.04) 75%);
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+  background-size: 16px 16px;
   padding: 1px;
+}
+
+.underlay-layer {
+  position: absolute;
+  inset: 1px;
+  z-index: 1;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  pointer-events: none;
 }
 
 .editor-footer {
@@ -134,9 +153,29 @@
 
 #ascii-canvas {
   image-rendering: pixelated;
+  position: relative;
+  z-index: 2;
   display: block;
-  cursor: crosshair;
+  cursor: inherit;
   touch-action: none;
+}
+
+.tool-brush #ascii-canvas,
+.tool-line #ascii-canvas,
+.tool-rect #ascii-canvas {
+  cursor: crosshair;
+}
+
+.tool-eraser #ascii-canvas {
+  cursor: cell;
+}
+
+.tool-fill #ascii-canvas {
+  cursor: copy;
+}
+
+.tool-eyedropper #ascii-canvas {
+  cursor: alias;
 }
 
 .help-overlay {

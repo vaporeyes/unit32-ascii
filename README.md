@@ -1,66 +1,86 @@
-# Unit32 ASCII
+# unit32-ascii
 
-A high-performance, grid-based ASCII art editor built with a `Uint32Array` memory architecture.
-
-## Overview
-
-Unit32 ASCII is a specialized tool for creating ANSI/ASCII art. It leverages a 1D `Uint32Array` to manage the grid state efficiently, enabling fast rendering and low memory overhead. The project features an offline-first approach with local persistence and a Go-based backend for remote storage and synchronization.
+A fast, offline-first ASCII / ANSI art editor. Each grid cell is packed into a
+single `Uint32` (16 bits character, 8 bits foreground, 8 bits background) and
+rendered through a glyph atlas with dirty-cell blitting.
 
 ## Features
 
-- **High-Performance Rendering:** Uses a `Uint32Array` to represent the grid and a custom blitting renderer to minimize draw calls.
-- **Offline-First:** Automatically saves progress to `IndexedDB`, ensuring data resilience across sessions.
-- **Undo/Redo:** Efficient diff-based history management.
-- **ANSI Export:** Offloads ANSI escape sequence generation to a Web Worker to keep the UI responsive.
-- **Tooling:** Includes brush with path interpolation (Bresenham's algorithm) and flood fill.
-- **Remote Sync:** Go-powered backend with PostgreSQL for cloud persistence.
+- **Six tools**: brush, eraser, paint bucket fill, eyedropper, line, rectangle
+- **256-colour xterm palette** with foreground / background selection and swap
+- **Box-drawing and block characters** plus full printable ASCII
+- **Bresenham line interpolation** so brush strokes don't skip pixels
+- **Offline-first**: multiple named documents persisted to IndexedDB with
+  debounced autosave
+- **Shareable URLs**: compressed grid state encoded into a `#fragment`; no
+  account or server required
+- **Optional gallery backend** (Go) for publishing artworks behind a stable URL
+- **Web Worker ANSI export**, copy to clipboard, or download as `.ans`
+- **Pointer events** (mouse, pen, touch) and keyboard shortcuts
 
-## Tech Stack
+## Keyboard shortcuts
 
-### Frontend
-- **Framework:** React 19 (TypeScript)
-- **Build Tool:** Vite
-- **Storage:** IndexedDB (`idb`)
-- **State:** Custom `Uint32Array` engine
+| Key | Action |
+| --- | --- |
+| `B / E / F` | Brush / Eraser / Fill |
+| `I / L / R` | Eyedropper / Line / Rectangle |
+| `X` | Swap foreground and background |
+| Any printable | Set that character as the brush |
+| `Ctrl/Cmd+Z` | Undo |
+| `Ctrl/Cmd+Shift+Z` | Redo |
+| `Ctrl/Cmd+N` | New document |
+| `?` | Toggle help |
 
-### Backend
-- **Language:** Go
-- **Router:** chi
-- **Database:** PostgreSQL (`pgx`)
+## Frontend
 
-## Getting Started
+Requires Node 20+.
 
-### Prerequisites
-- Node.js (v20+)
-- Go (v1.25+)
-- PostgreSQL (optional, for backend persistence)
-
-### Frontend Development
 ```bash
-# Install dependencies
 npm install
-
-# Start development server
-npm run dev
+npm run dev      # start dev server
+npm run build    # production build to dist/
 ```
 
-### Backend Development
+Optionally point the frontend at a custom backend by setting
+`VITE_API_URL=https://your-host` before `npm run build` (or in `.env.local`).
+
+## Backend (Go)
+
+The backend is a small `chi`-based service that stores artwork bytes on the
+local filesystem (`./data/<id>.bin`) and metadata in a sidecar JSON file
+(`./data/<id>.json`). It is intentionally dependency-light; swap the storage
+layer for S3 / Postgres without changing the HTTP surface.
+
 ```bash
 cd backend
-
-# Build the binary
-go build -o server main.go
-
-# Run the server
+go build -o server .
 ./server
 ```
 
-## Project Structure
+Environment variables:
 
-- `src/engine/`: Core logic for memory management, rendering, and tools.
-- `src/workers/`: Web Workers for computationally expensive tasks like exporting.
-- `src/components/`: React UI components.
-- `backend/`: Go implementation of the persistence layer.
+- `ADDR` (default `:8080`)
+- `CORS_ORIGINS` comma-separated list, or `*` (default `*`)
+
+Endpoints:
+
+- `GET  /healthz` health probe
+- `GET  /artworks` list the 100 most recent artworks
+- `GET  /artworks/{id}` fetch one artwork (metadata + base64 cell bytes)
+- `POST /artworks` publish (`{title, author, width, height, data: base64}`)
+
+Per-IP rate limit: 60 requests / minute. Request body cap: 2 MB. Grid dims are
+validated and `data.length` must equal `width * height * 4`.
+
+## Project layout
+
+```
+src/
+  engine/        memory, renderer, sprites, tools, share, storage, api client
+  components/    React UI (toolbar, palette, color picker, doc panel)
+  workers/       ANSI exporter Web Worker
+backend/         Go HTTP service
+```
 
 ## License
 

@@ -1,4 +1,7 @@
 /* ABOUTME: 256-color palette (xterm standard) utility. */
+/* ABOUTME: Keeps foreground colors opaque while allowing transparent cell backgrounds. */
+
+export const TRANSPARENT_BG = 0;
 
 export const XTERM_COLORS: string[] = [
   // 16 Standard colors
@@ -26,4 +29,9 @@ for (let i = 0; i < 24; i++) {
 
 export function getXtermColor(index: number): string {
   return XTERM_COLORS[index] || '#ffffff';
+}
+
+export function getCellBackgroundColor(index: number): string | null {
+  if (index === TRANSPARENT_BG) return null;
+  return getXtermColor(index);
 }
