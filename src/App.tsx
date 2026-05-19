@@ -30,6 +30,13 @@ interface DocBootstrap {
   buffer?: Uint32Array;
 }
 
+type DialogState =
+  | { kind: 'new'; width: string; height: string }
+  | { kind: 'clear' }
+  | { kind: 'delete'; id: string; name: string; isCurrent: boolean }
+  | { kind: 'publish'; author: string }
+  | null;
+
 async function bootstrapDoc(storage: Storage): Promise<DocBootstrap> {
   const params = new URLSearchParams(window.location.search);
   const galleryId = params.get('id');
@@ -105,6 +112,7 @@ const App: React.FC = () => {
   const [sidebarsOpen, setSidebarsOpen] = useState(true);
   const [underlayUrl, setUnderlayUrl] = useState<string | null>(null);
   const [underlayOpacity, setUnderlayOpacity] = useState(0.5);
+  const [dialog, setDialog] = useState<DialogState>(null);
 
   useEffect(() => {
     activeToolRef.current = activeTool;
@@ -245,24 +253,38 @@ const App: React.FC = () => {
     engineRef.current?.setToolState({ bg: index });
   }, []);
 
-  const handleNew = useCallback(async () => {
-    const widthStr = window.prompt('Width (cells):', String(config.width));
-    if (widthStr === null) return;
-    const heightStr = window.prompt('Height (cells):', String(config.height));
-    if (heightStr === null) return;
-    const width = Math.min(MAX_DIM, Math.max(MIN_DIM, parseInt(widthStr, 10) || DEFAULT_WIDTH));
-    const height = Math.min(MAX_DIM, Math.max(MIN_DIM, parseInt(heightStr, 10) || DEFAULT_HEIGHT));
+  const createNewDoc = useCallback((width: number, height: number) => {
     const boot: DocBootstrap = { id: randomId(), name: 'Untitled', width, height };
     setBootstrap(boot);
     setConfig(prev => ({ ...prev, width, height }));
     setDocInfo({ id: boot.id, name: boot.name });
+  }, []);
+
+  const handleNew = useCallback(() => {
+    setDialog({ kind: 'new', width: String(config.width), height: String(config.height) });
   }, [config.width, config.height]);
+
+  const confirmNew = useCallback((widthStr: string, heightStr: string) => {
+    const width = Math.min(MAX_DIM, Math.max(MIN_DIM, parseInt(widthStr, 10) || DEFAULT_WIDTH));
+    const height = Math.min(MAX_DIM, Math.max(MIN_DIM, parseInt(heightStr, 10) || DEFAULT_HEIGHT));
+    createNewDoc(width, height);
+    setDialog(null);
+  }, [createNewDoc]);
 
   // Keyboard shortcuts.
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
-      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
+      if (dialog) {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          setDialog(null);
+        }
+        return;
+      }
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        return;
+      }
 
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
         e.preventDefault();
@@ -299,7 +321,7 @@ const App: React.FC = () => {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [setTool, swapColors, handleCharSelect, handleNew]);
+  }, [dialog, setTool, swapColors, handleCharSelect, handleNew]);
 
   const flash = useCallback((msg: string) => {
     setStatus(msg);
@@ -345,9 +367,13 @@ const App: React.FC = () => {
   }, [flash]);
 
   const handlePublish = useCallback(async () => {
+    setDialog({ kind: 'publish', author: '' });
+  }, []);
+
+  const confirmPublish = useCallback(async (author: string) => {
     const eng = engineRef.current;
     if (!eng) return;
-    const author = window.prompt('Author name (optional):', '') ?? '';
+    setDialog(null);
     try {
       setStatus('Publishing...');
       const meta = await publishArtwork({
@@ -383,14 +409,28 @@ const App: React.FC = () => {
   }, []);
 
   const handleDelete = useCallback(async (id: string) => {
-    if (!window.confirm('Delete this document?')) return;
+    const target = docs.find(d => d.id === id);
+    setDialog({
+      kind: 'delete',
+      id,
+      name: target?.name || 'Untitled',
+      isCurrent: id === docInfo.id,
+    });
+  }, [docInfo.id, docs]);
+
+  const confirmDelete = useCallback(async (id: string, isCurrent: boolean) => {
+    setDialog(null);
     await storageRef.current.deleteDoc(id);
-    if (id === docInfo.id) handleNew();
+    if (isCurrent) createNewDoc(config.width, config.height);
     await refreshDocList();
-  }, [docInfo.id, handleNew, refreshDocList]);
+  }, [config.height, config.width, createNewDoc, refreshDocList]);
 
   const handleClear = useCallback(() => {
-    if (!window.confirm('Clear the canvas?')) return;
+    setDialog({ kind: 'clear' });
+  }, []);
+
+  const confirmClear = useCallback(() => {
+    setDialog(null);
     engineRef.current?.clear();
   }, []);
 
@@ -522,6 +562,112 @@ const App: React.FC = () => {
             </table>
             <button onClick={() => setShowHelp(false)}>Close</button>
           </div>
+        </div>
+      )}
+      {dialog && (
+        <div className="question-overlay" onClick={() => setDialog(null)}>
+          {dialog.kind === 'new' && (
+            <form
+              className="question-modal"
+              onClick={e => e.stopPropagation()}
+              onSubmit={e => {
+                e.preventDefault();
+                confirmNew(dialog.width, dialog.height);
+              }}
+            >
+              <div className="question-topline">
+                <span>New Document</span>
+                <span>{MIN_DIM}-{MAX_DIM} cells</span>
+              </div>
+              <h2>Choose canvas size</h2>
+              <div className="question-grid">
+                <label>
+                  <span>Width</span>
+                  <input
+                    autoFocus
+                    type="number"
+                    min={MIN_DIM}
+                    max={MAX_DIM}
+                    value={dialog.width}
+                    onChange={e => setDialog({ ...dialog, width: e.target.value })}
+                  />
+                </label>
+                <label>
+                  <span>Height</span>
+                  <input
+                    type="number"
+                    min={MIN_DIM}
+                    max={MAX_DIM}
+                    value={dialog.height}
+                    onChange={e => setDialog({ ...dialog, height: e.target.value })}
+                  />
+                </label>
+              </div>
+              <div className="question-actions">
+                <button type="button" className="ghost" onClick={() => setDialog(null)}>Cancel</button>
+                <button type="submit" className="primary">Create</button>
+              </div>
+            </form>
+          )}
+          {dialog.kind === 'clear' && (
+            <section className="question-modal compact" onClick={e => e.stopPropagation()}>
+              <div className="question-topline">
+                <span>Clear Canvas</span>
+                <span>{config.width} x {config.height}</span>
+              </div>
+              <h2>Erase every cell?</h2>
+              <p>This clears the current document but keeps the document, palette and underlay in place.</p>
+              <div className="question-actions">
+                <button type="button" className="ghost" onClick={() => setDialog(null)}>Cancel</button>
+                <button type="button" className="danger" onClick={confirmClear}>Clear</button>
+              </div>
+            </section>
+          )}
+          {dialog.kind === 'delete' && (
+            <section className="question-modal compact" onClick={e => e.stopPropagation()}>
+              <div className="question-topline">
+                <span>Delete Document</span>
+                <span>{dialog.isCurrent ? 'Current' : 'Saved'}</span>
+              </div>
+              <h2>Delete {dialog.name}?</h2>
+              <p>This removes the saved document from local storage.</p>
+              <div className="question-actions">
+                <button type="button" className="ghost" onClick={() => setDialog(null)}>Cancel</button>
+                <button type="button" className="danger" onClick={() => confirmDelete(dialog.id, dialog.isCurrent)}>
+                  Delete
+                </button>
+              </div>
+            </section>
+          )}
+          {dialog.kind === 'publish' && (
+            <form
+              className="question-modal"
+              onClick={e => e.stopPropagation()}
+              onSubmit={e => {
+                e.preventDefault();
+                void confirmPublish(dialog.author);
+              }}
+            >
+              <div className="question-topline">
+                <span>Publish</span>
+                <span>{docInfo.name || 'Untitled'}</span>
+              </div>
+              <h2>Gallery author</h2>
+              <label className="question-field">
+                <span>Author name</span>
+                <input
+                  autoFocus
+                  value={dialog.author}
+                  onChange={e => setDialog({ ...dialog, author: e.target.value })}
+                  placeholder="Optional"
+                />
+              </label>
+              <div className="question-actions">
+                <button type="button" className="ghost" onClick={() => setDialog(null)}>Cancel</button>
+                <button type="submit" className="primary">Publish</button>
+              </div>
+            </form>
+          )}
         </div>
       )}
     </div>
